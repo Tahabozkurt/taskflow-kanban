@@ -3,7 +3,6 @@
 import { FormEvent, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-// User ve Users ikonlarını sekmeler için ekledik
 import { LogOut, Plus, Trash2, User, Users } from 'lucide-react'; 
 import { supabase } from '@/lib/supabase';
 import type { Board } from '@/lib/types';
@@ -15,12 +14,13 @@ export default function BoardsPage() {
   const [title, setTitle] = useState('');
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  
+  // Silme yetkisi kontrolü için hem ID hem Email tutuyoruz
+  const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   
-  // YENİ EKLENEN: Görünüm Modu (Kişisel mi, Ortak mı?)
   const [viewMode, setViewMode] = useState<'mine' | 'shared'>('mine');
 
-  // viewMode değiştiğinde boardları tekrar çeker
   useEffect(() => {
     void loadBoards();
   }, [viewMode]);
@@ -33,18 +33,16 @@ export default function BoardsPage() {
       return;
     }
     
+    setUserId(userData.user.id);
     setUserEmail(userData.user.email ?? null);
 
-    // Temel sorgumuzu oluşturuyoruz
     let query = supabase.from('boards').select('*').order('created_at', { ascending: false });
 
-    // Eğer "Kişisel" sekmesindeysek filtre ekliyoruz, "Ortak" sekmesindeysek eklemiyoruz
     if (viewMode === 'mine') {
       query = query.eq('owner_id', userData.user.id);
     }
 
     const { data, error } = await query;
-
     if (!error) setBoards(data ?? []);
     setLoading(false);
   }
@@ -74,9 +72,13 @@ export default function BoardsPage() {
         { board_id: board.id, title: 'Tamamlandı', position: POSITION_STEP * 3 }
       ]);
       
-      // Board eklendiğinde eğer "Benim Boardlarım"da isek veya "Ortak"ta isek ekrana yansıt
-      setBoards([board, ...boards]);
+      // Eğer kişisel sekmedeysek listeye ekle
+      if (viewMode === 'mine') {
+        setBoards([board, ...boards]);
+      }
       setTitle('');
+      // Yeni board eklendiğinde listeyi tazelemek en sağlıklısı
+      void loadBoards();
     }
 
     setCreating(false);
@@ -86,11 +88,11 @@ export default function BoardsPage() {
     const confirmed = window.confirm("Bu board'u ve içindeki tüm verileri silmek istediğinize emin misiniz?");
     if (!confirmed) return;
 
+    // Arayüzden kaldır (Optimistic)
     setBoards((current) => current.filter((b) => b.id !== boardId));
 
     const { error } = await supabase.from('boards').delete().eq('id', boardId);
     if (error) {
-      console.error("Board silinirken hata oluştu:", error);
       alert("Board silinemedi.");
       void loadBoards(); 
     }
@@ -125,7 +127,6 @@ export default function BoardsPage() {
         </button>
       </form>
 
-      {/* YENİ EKLENEN: Sekmeli Geçiş Menüsü (Tabs) */}
       <div className="mt-8 flex w-fit rounded-2xl bg-slate-100 p-1">
         <button
           onClick={() => setViewMode('mine')}
@@ -152,28 +153,26 @@ export default function BoardsPage() {
           {boards.map((board) => (
             <Link key={board.id} href={`/boards/${board.id}`} className="block rounded-[2rem] bg-white/85 p-6 shadow-soft ring-1 ring-slate-200 transition hover:-translate-y-1 hover:shadow-xl relative group">
               <div className="flex items-start justify-between">
-                <div>
-                  <h2 className="text-xl font-black text-slate-950">{board.title}</h2>
+                <div className="flex-1 pr-4">
+                  <h2 className="text-xl font-black text-slate-950 break-words">{board.title}</h2>
                   
-                  {/* Ortak alandaysak kimin oluşturduğunu gösteren etiket */}
                   {viewMode === 'shared' && (
                     <span className="mt-2 inline-block text-[10px] font-bold uppercase tracking-wider text-indigo-500 bg-indigo-50 px-2 py-1 rounded-lg">
-                      Oluşturan: {board.owner_email === userEmail ? "SİZ" : (board.owner_email || "Bilinmiyor")}
+                      Oluşturan: {board.owner_id === userId ? "SİZ" : (board.owner_email || "Bilinmiyor")}
                     </span>
                   )}
                   
-                  <p className="mt-4 text-sm text-slate-500">Açmak için tıkla</p>
+                  <p className="mt-4 text-sm text-slate-500 italic">Açmak için tıkla →</p>
                 </div>
                 
-                {/* Güvenlik: Sadece kendi oluşturduğu boardları silebilsin */}
-                {board.owner_email === userEmail && (
+                {/* SİLME BUTONU: Eğer board'un sahibiysen (id üzerinden kontrol) her zaman görünür */}
+                {board.owner_id === userId && (
                   <button
                     onClick={(e) => {
                       e.preventDefault(); 
                       deleteBoard(board.id);
                     }}
-                    className="rounded-xl p-2 text-slate-300 hover:bg-red-50 hover:text-red-500 transition-colors"
-                    aria-label="Board'u sil"
+                    className="shrink-0 rounded-xl p-2 text-slate-300 hover:bg-red-50 hover:text-red-500 transition-colors"
                   >
                     <Trash2 size={18} />
                   </button>
@@ -181,11 +180,6 @@ export default function BoardsPage() {
               </div>
             </Link>
           ))}
-          {boards.length === 0 && (
-            <p className="text-slate-600">
-              {viewMode === 'mine' ? 'Henüz board yok. İlk boardunu oluştur.' : 'Ortak alanda henüz board bulunmuyor.'}
-            </p>
-          )}
         </section>
       )}
     </main>
