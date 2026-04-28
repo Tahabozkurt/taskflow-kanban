@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light;
+  --bg: #eef2ff;
+  --ink: #0f172a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+  background: radial-gradient(circle at top left, #dbeafe 0, transparent 28rem),
+    linear-gradient(135deg, #f8fafc 0%, #eef2ff 45%, #f1f5f9 100%);
+  color: var(--ink);
+}
+
+body {
+  margin: 0;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+.kanban-scroll {
+  scrollbar-width: thin;
+}
+
+.kanban-scroll::-webkit-scrollbar {
+  height: 10px;
+  width: 10px;
+}
+
+.kanban-scroll::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.35);
+  border-radius: 999px;
+}
+
+.card-touch-target {
+  touch-action: manipulation;
+}
