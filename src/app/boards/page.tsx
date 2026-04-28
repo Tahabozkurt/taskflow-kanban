@@ -30,6 +30,7 @@ export default function BoardsPage() {
     const { data, error } = await supabase
       .from('boards')
       .select('*')
+      .eq('owner_id', userData.user.id)
       .order('created_at', { ascending: false });
 
     if (!error) setBoards(data ?? []);
