@@ -1,68 +1,74 @@
-# TaskFlow - Kanban Proje Yonetim Tahtasi
+🚀 TaskFlow - Modern Kanban Yönetim Platformu
+TaskFlow, ekiplerin ve bireylerin iş akışlarını görselleştirmesi, yönetmesi ve optimize etmesi için tasarlanmış, tam kapsamlı (full-stack) bir Kanban uygulamasıdır. Kullanıcı deneyimi, performans ve mobil uyumluluk odaklı geliştirilmiştir.
 
-TaskFlow, kucuk yazilim ekipleri icin hazirlanmis Trello benzeri Kanban uygulamasidir. Kullanici hesap acabilir, giris yapabilir, board olusturabilir, sutun ve kart ekleyebilir, kartlari surukle-birak ile sutunlar arasinda tasiyabilir ve kart detaylarini duzenleyebilir.
+Canlı Demo Linki [(Vercel)](https://taskflow-kanban-indol.vercel.app)
 
-## Teknoloji
+✨ Öne Çıkan Özellikler
+Gelişmiş Sürükle-Bırak: @dnd-kit kullanılarak inşa edilen mimari ile kartları ve sütunları hem yatay hem dikey düzlemde akıcı bir şekilde taşıyabilirsiniz.
 
-- Next.js + React + TypeScript
-- Tailwind CSS
-- Supabase Auth + Postgres + Row Level Security
-- dnd-kit ile surukle-birak
-- Vercel deploy uyumlu yapi
+Kişisel ve Ortak Çalışma Alanları: Kullanıcılar sadece kendi oluşturdukları boardlar üzerinde çalışabilir veya "Ortak Çalışma Alanı" üzerinden tüm ekibin projelerini takip edebilir.
 
-## Kurulum
+Mobil Öncelikli Tasarım: Dokunmatik ekranlar için "uzun basma" (delay) sensörleri ve kart altı hızlı taşıma butonları ile mobil cihazlarda kusursuz deneyim.
 
-```bash
+Esnek Başlık Yönetimi: Sütun isimlerini "Inline Editing" özelliği ile anında değiştirebilme.
+
+Hızlı ve Güvenli Kimlik Doğrulama: Supabase Auth ile şifresiz/şifreli giriş ve oturum yönetimi.
+
+Performanslı Sıralama: "Fractional Indexing" mantığı kullanılarak veritabanında tüm kartları güncellemeye gerek kalmadan sonsuz sıralama imkanı.
+
+🛠️ Teknoloji Yığını
+Framework: Next.js 14 (App Router)
+
+Dil: TypeScript
+
+Veritabanı & Auth: Supabase (PostgreSQL)
+
+Stil: Tailwind CSS
+
+Sürükle-Bırak: @dnd-kit/core & @dnd-kit/sortable
+
+İkonlar: Lucide React
+
+Deployment: Vercel
+
+📦 Kurulum ve Çalıştırma
+Projeyi yerel bilgisayarınızda çalıştırmak için:
+
+Depoyu klonlayın:
+
+Bash
+git clone https://github.com/Tahabozkurt/taskflow-kanban.git
+cd taskflow-kanban
+Bağımlılıkları yükleyin:
+
+Bash
 npm install
-cp .env.example .env.local
+.env.local dosyasını oluşturun ve Supabase bilgilerinizi ekleyin:
+
+Code snippet
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+Uygulamayı başlatın:
+
+Bash
 npm run dev
-```
+🏗️ Veritabanı Şeması
+Proje, ilişkisel bir veritabanı yapısı üzerine kuruludur:
 
-`.env.local` icine Supabase proje bilgilerini ekleyin:
+boards: Tahta bilgilerini ve sahiplik verilerini tutar.
 
-```bash
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-```
+columns: Tahtalara bağlı sütunları ve sıralamalarını tutar.
 
-Supabase SQL Editor icinde `supabase/schema.sql` dosyasini calistirin.
+cards: Sütunlara bağlı görevleri, içerikleri ve pozisyon verilerini tutar.
 
-## Vercel Deploy
+activity: Kart hareketlerinin tarihçesini (log) tutar.
 
-1. Projeyi GitHub reposuna yukleyin.
-2. Vercel'de "New Project" ile repoyu secin.
-3. Environment Variables alanina `.env.example` dosyasindaki iki degiskeni ekleyin.
-4. Deploy edin.
+💡 Teknik Kararlar ve Yaklaşım
+Neden dnd-kit? Eski kütüphanelerin aksine daha hafif, modüler ve erişilebilirlik (A11y) standartlarına uygun olduğu için tercih edildi.
 
-## Kapsam
+Optimistic UI: Kullanıcı bir kartı taşıdığında, veritabanı yanıtı beklenmeden arayüz anında güncellenir. Bu, kullanıcının "gecikme" hissetmesini engeller.
 
-Tamamlananlar:
+Zaman Yönetimi: 48 saatlik geliştirme sürecinde, karmaşık özelliklerden ziyade çekirdek Kanban mekanizmasının (Drag-and-Drop) hatasız çalışmasına odaklanılmıştır.
 
-- Hesap olusturma ve giris
-- Board olusturma
-- Sütun ekleme
-- Kart ekleme
-- Kart basligi/aciklamasi duzenleme
-- Kart silme
-- Kartlari sutunlar arasi surukle-birak ile tasima
-- Sutun siralamasi degistirme
-- Siralamanin sayfa yenilemede korunmasi
-- Mobilde uzun basma + alternatif ileri/geri tasima butonlari
-- Kart hareketleri icin activity tablosu
-
-Bilincli olarak MVP disi birakilanlar:
-
-- Gercek zamanli birlikte duzenleme
-- Board paylasim linki
-- Etiket / son teslim tarihi / sorumlu kisi
-- Kart ekleri
-
-Bu kararlar 48 saatlik teslim icin temel surukle-birak, veri modeli ve siralama kalitesini oncelemek amaciyla alindi.
-
-## Siralama Mantigi
-
-`columns.position` ve `cards.position` numeric olarak tutulur. Araya tasimada yeni pozisyon, onceki ve sonraki elemanin ortalamasi olarak hesaplanir. Bu yaklasim sayesinde sadece tasinan kayit update edilir; her tasimada tum kartlarin sirasi yeniden yazilmaz.
-
-## Mobil Kullanilabilirlik
-
-`PointerSensor` 180ms gecikme ile baslatilir. Bu, scroll hareketi ile suruklemenin karismasini azaltir. Mobilde ayrica kart altinda ileri/geri tasima butonlari gosterilir.
+👨‍💻 Geliştirici
+Taha Bozkurt - [GitHub Profilim](https://github.com/Tahabozkurt)
