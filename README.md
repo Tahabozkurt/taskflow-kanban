@@ -85,7 +85,7 @@ Uygulama, yüksek performans için *ilişkisel veritabanı* prensiplerine göre 
 
 **Taha Bozkurt**
 * [GitHub Profilim](https://github.com/Tahabozkurt)
-* [LinkedIn üzerinden ulaşın](https://linkedin.com/in/tahabozkurt)
+* [LinkedIn üzerinden ulaşın](https://www.linkedin.com/in/taha-bozkurt/)
 
 ---
 *TaskFlow bir **Taha Bozkurt** projesidir. &copy; 2026*
