@@ -3,6 +3,7 @@ export type Board = {
   title: string;
   owner_id: string;
   created_at: string;
+  owner_email?: string | null;
 };
 
 export type KanbanColumn = {
