@@ -21,7 +21,6 @@ import {
   horizontalListSortingStrategy,
   verticalListSortingStrategy
 } from '@dnd-kit/sortable';
-// Silme ikonu için Trash2'yi import ediyoruz
 import { ArrowLeft, ArrowRight, GripVertical, Plus, Trash2 } from 'lucide-react'; 
 import Link from 'next/link';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
@@ -46,6 +45,10 @@ export default function BoardView({ boardId }: { boardId: string }) {
   const [activeColumn, setActiveColumn] = useState<KanbanColumn | null>(null);
   const [selectedCard, setSelectedCard] = useState<KanbanCard | null>(null);
   const [error, setError] = useState('');
+
+  // SÜTUN DÜZENLEME STATE'LERİ
+  const [editingColumnId, setEditingColumnId] = useState<string | null>(null);
+  const [tempColumnTitle, setTempColumnTitle] = useState('');
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -93,6 +96,30 @@ export default function BoardView({ boardId }: { boardId: string }) {
     setBoard(boardData);
     setColumns(columnData ?? []);
     setCards(cardData ?? []);
+  }
+
+  // SÜTUN BAŞLIĞI GÜNCELLEME FONKSİYONU
+  async function updateColumnTitle(columnId: string, newTitle: string) {
+    if (!newTitle.trim()) {
+      setEditingColumnId(null);
+      return;
+    }
+
+    // Arayüzü hemen güncelle (Optimistic)
+    setColumns((current) =>
+      current.map((col) => (col.id === columnId ? { ...col, title: newTitle.trim() } : col))
+    );
+    setEditingColumnId(null);
+
+    const { error: updateError } = await supabase
+      .from('columns')
+      .update({ title: newTitle.trim() })
+      .eq('id', columnId);
+
+    if (updateError) {
+      setError("Başlık güncellenirken hata oluştu.");
+      await loadBoard();
+    }
   }
 
   function onDragStart(event: DragStartEvent) {
@@ -199,20 +226,17 @@ export default function BoardView({ boardId }: { boardId: string }) {
     setNewColumnTitle('');
   }
 
-  // YENİ EKLENEN SÜTUN SİLME FONKSİYONU
   async function deleteColumn(columnId: string) {
     const confirmed = window.confirm("Bu sütunu ve içindeki tüm kartları silmek istediğinize emin misiniz?");
     if (!confirmed) return;
 
-    // UI'ı anında güncelliyoruz (Optimistic Update)
     setColumns((current) => current.filter((col) => col.id !== columnId));
     setCards((current) => current.filter((card) => card.column_id !== columnId));
 
-    // Veritabanından siliyoruz
     const { error: deleteError } = await supabase.from('columns').delete().eq('id', columnId);
     if (deleteError) {
       setError("Sütun silinirken hata oluştu.");
-      await loadBoard(); // Hata olursa eski verileri geri yükle
+      await loadBoard(); 
     }
   }
 
@@ -291,7 +315,13 @@ export default function BoardView({ boardId }: { boardId: string }) {
                 onCreateCard={createCard}
                 onSelectCard={setSelectedCard}
                 onMoveCardButton={moveCardWithButton}
-                onDeleteColumn={deleteColumn} // Sütun silme fonksiyonunu prop olarak geçiriyoruz
+                onDeleteColumn={deleteColumn}
+                // DÜZENLEME PROP'LARI EKLENDİ
+                editingColumnId={editingColumnId}
+                setEditingColumnId={setEditingColumnId}
+                tempColumnTitle={tempColumnTitle}
+                setTempColumnTitle={setTempColumnTitle}
+                onUpdateColumnTitle={updateColumnTitle}
                 canMoveLeft={sortedColumns[0]?.id !== column.id}
                 canMoveRight={sortedColumns.at(-1)?.id !== column.id}
               />
@@ -315,7 +345,12 @@ function SortableColumn({
   onCreateCard,
   onSelectCard,
   onMoveCardButton,
-  onDeleteColumn, // Yeni eklenen prop
+  onDeleteColumn,
+  editingColumnId,
+  setEditingColumnId,
+  tempColumnTitle,
+  setTempColumnTitle,
+  onUpdateColumnTitle,
   canMoveLeft,
   canMoveRight
 }: {
@@ -324,11 +359,16 @@ function SortableColumn({
   onCreateCard: (columnId: string, title: string) => Promise<void>;
   onSelectCard: (card: KanbanCard) => void;
   onMoveCardButton: (card: KanbanCard, direction: -1 | 1) => Promise<void>;
-  onDeleteColumn: (columnId: string) => void; // Yeni eklenen tip
+  onDeleteColumn: (columnId: string) => void;
+  editingColumnId: string | null;
+  setEditingColumnId: (id: string | null) => void;
+  tempColumnTitle: string;
+  setTempColumnTitle: (title: string) => void;
+  onUpdateColumnTitle: (id: string, title: string) => void;
   canMoveLeft: boolean;
   canMoveRight: boolean;
 }) {
-  const [title, setTitle] = useState('');
+  const [newCardTitle, setNewCardTitle] = useState('');
   const { setNodeRef: setDropRef, isOver } = useDroppable({ id: dropDndId(column.id) });
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: columnDndId(column.id) });
 
@@ -337,19 +377,45 @@ function SortableColumn({
     transition
   };
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
+  async function submitCard(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!title.trim()) return;
-    await onCreateCard(column.id, title.trim());
-    setTitle('');
+    if (!newCardTitle.trim()) return;
+    await onCreateCard(column.id, newCardTitle.trim());
+    setNewCardTitle('');
   }
+
+  const isEditing = editingColumnId === column.id;
 
   return (
     <article ref={setNodeRef} style={style} className={`flex w-[21rem] shrink-0 flex-col rounded-[1.75rem] bg-white/85 p-3 shadow-soft ring-1 ring-slate-200 backdrop-blur ${isDragging ? 'opacity-50' : ''}`}>
       <div className="flex items-center justify-between gap-2 px-2 py-2">
-        <h2 className="font-black text-slate-900">{column.title}</h2>
+        
+        {/* SÜTUN BAŞLIĞI DÜZENLEME MANTIĞI */}
+        {isEditing ? (
+          <input
+            autoFocus
+            className="min-w-0 flex-1 rounded-lg border-2 border-indigo-500 bg-white px-2 py-1 text-lg font-black outline-none"
+            value={tempColumnTitle}
+            onChange={(e) => setTempColumnTitle(e.target.value)}
+            onBlur={() => onUpdateColumnTitle(column.id, tempColumnTitle)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') onUpdateColumnTitle(column.id, tempColumnTitle);
+              if (e.key === 'Escape') setEditingColumnId(null);
+            }}
+          />
+        ) : (
+          <h2 
+            onClick={() => {
+              setEditingColumnId(column.id);
+              setTempColumnTitle(column.title);
+            }}
+            className="cursor-pointer font-black text-slate-900 hover:text-indigo-600 transition-colors"
+          >
+            {column.title}
+          </h2>
+        )}
+
         <div className="flex items-center gap-1">
-          {/* Sütun Silme Butonu eklendi */}
           <button onClick={() => onDeleteColumn(column.id)} className="rounded-xl p-2 text-slate-300 hover:bg-red-50 hover:text-red-500 transition-colors" aria-label="Sütunu sil">
             <Trash2 size={16} />
           </button>
@@ -376,8 +442,8 @@ function SortableColumn({
         </div>
       </SortableContext>
 
-      <form onSubmit={submit} className="mt-3 flex gap-2">
-        <input className="min-w-0 flex-1 rounded-2xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100" value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Yeni kart" />
+      <form onSubmit={submitCard} className="mt-3 flex gap-2">
+        <input className="min-w-0 flex-1 rounded-2xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100" value={newCardTitle} onChange={(event) => setNewCardTitle(event.target.value)} placeholder="Yeni kart" />
         <button className="rounded-2xl bg-indigo-600 px-3 py-2 font-semibold text-white"><Plus size={16} /></button>
       </form>
     </article>
