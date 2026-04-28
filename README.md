@@ -1,5 +1,3 @@
----
-
 # 🚀 **TaskFlow** | *Modern & Dynamic Kanban Management*
 
 [![Next.js](https://img.shields.io/badge/Next.js-14-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
