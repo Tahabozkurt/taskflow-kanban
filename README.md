@@ -73,7 +73,7 @@ Uygulama, yüksek performans için *ilişkisel veritabanı* prensiplerine göre 
 
 ---
 
-## 💡 **Neden TaskFlow? **
+## 💡 Neden TaskFlow? 
 
 * **Optimistic UI:** Kullanıcı bir işlem yaptığında sunucu cevabı beklenmez; arayüz ***anında*** güncellenir. Bu, "Zero-Lag" (Sıfır Gecikme) hissi yaratır.
 * **Hafif Mimari:** Modüler yapı sayesinde uygulama sadece ihtiyaç duyulan kodları yükler, bu da **Lighthouse** skorlarını zirveye taşır.
